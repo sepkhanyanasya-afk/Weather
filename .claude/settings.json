@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(./.env)",
+      "Read(.env.*)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(.netlify/**)",
+      "Bash(cat .env*)",
+      "Bash(cat ./.env*)",
+      "Bash(less .env*)",
+      "Bash(more .env*)",
+      "Bash(head .env*)",
+      "Bash(tail .env*)",
+      "Bash(type .env*)",
+      "Bash(grep:* .env*)",
+      "Bash(printenv:*)",
+      "Bash(env)",
+      "Bash(echo $WEATHER_API_KEY)"
+    ],
+    "ask": [
+      "Bash(git push:*)"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+# Netlify reads this file to learn how to build and serve the site.
+
+[build]
+  # Where the public files live. "." means this folder.
+  publish = "."
+  # Where the server functions live.
+  functions = "netlify/functions"
+
+# A friendlier address for the function.
+# The browser calls /api/weather; Netlify forwards it to the function.
+[[redirects]]
+  from = "/api/weather"
+  to = "/.netlify/functions/weather"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#FFF3E0" />
+  <title>Weather</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Soft coloured blobs drifting behind everything. Pure decoration. -->
+  <div class="blobs" aria-hidden="true">
+    <span class="blob blob--1"></span>
+    <span class="blob blob--2"></span>
+    <span class="blob blob--3"></span>
+  </div>
+
+  <main class="card">
+
+    <header class="bar">
+      <p class="brand">Weather</p>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch between light and dark">
+        <span class="theme-toggle__icon" data-icon="sun" aria-hidden="true">☀</span>
+        <span class="theme-toggle__icon" data-icon="moon" aria-hidden="true">☾</span>
+      </button>
+    </header>
+
+    <form id="search-form" class="search">
+      <input id="search-input" class="search__input" type="text"
+             placeholder="Search a city..." autocomplete="off" required />
+      <button class="search__button" type="submit" aria-label="Search">Go</button>
+    </form>
+
+    <p id="status" class="note note--loading" hidden>Looking outside...</p>
+    <p id="error" class="note note--error" hidden></p>
+
+    <section id="result" class="result" hidden>
+
+      <!-- ================= the illustration =================
+           All the scenes live here, hidden. JavaScript unhides
+           the one that matches the weather. Keeping them in HTML
+           (instead of building them in JS) means the CSS
+           animations below just work.
+           ==================================================== -->
+      <div class="scene-wrap">
+        <div id="scenes" class="scenes">
+
+          <!-- SUNNY -->
+          <svg class="scene" data-scene="sun" viewBox="0 0 120 120">
+            <g class="spin" style="transform-origin:60px 58px">
+              <g class="rays">
+                <rect x="57" y="8"  width="6" height="16" rx="3"/>
+                <rect x="57" y="92" width="6" height="16" rx="3"/>
+                <rect x="8"  y="55" width="16" height="6" rx="3"/>
+                <rect x="96" y="55" width="16" height="6" rx="3"/>
+                <rect x="21" y="19" width="6" height="16" rx="3" transform="rotate(-45 24 27)"/>
+                <rect x="93" y="19" width="6" height="16" rx="3" transform="rotate(45 96 27)"/>
+                <rect x="21" y="83" width="6" height="16" rx="3" transform="rotate(45 24 91)"/>
+                <rect x="93" y="83" width="6" height="16" rx="3" transform="rotate(-45 96 91)"/>
+              </g>
+            </g>
+            <circle class="sun" cx="60" cy="58" r="26"/>
+            <circle class="sun-glow" cx="60" cy="58" r="26"/>
+          </svg>
+
+          <!-- CLEAR NIGHT -->
+          <svg class="scene" data-scene="moon" viewBox="0 0 120 120">
+            <path class="moon" d="M72 22A38 38 0 1 0 72 98 48 48 0 0 1 72 22Z"/>
+            <g transform="translate(26 26)"><path class="star twinkle-1" d="M0-6C1-2 2-1 6 0 2 1 1 2 0 6-1 2-2 1-6 0-2-1-1-2 0-6Z"/></g>
+            <g transform="translate(98 34) scale(0.75)"><path class="star twinkle-2" d="M0-6C1-2 2-1 6 0 2 1 1 2 0 6-1 2-2 1-6 0-2-1-1-2 0-6Z"/></g>
+            <g transform="translate(24 82) scale(0.7)"><path class="star twinkle-3" d="M0-6C1-2 2-1 6 0 2 1 1 2 0 6-1 2-2 1-6 0-2-1-1-2 0-6Z"/></g>
+            <g transform="translate(96 92) scale(0.9)"><path class="star twinkle-2" d="M0-6C1-2 2-1 6 0 2 1 1 2 0 6-1 2-2 1-6 0-2-1-1-2 0-6Z"/></g>
+          </svg>
+
+          <!-- PARTLY CLOUDY (day) -->
+          <svg class="scene" data-scene="partly-day" viewBox="0 0 120 120">
+            <g class="spin" style="transform-origin:44px 42px">
+              <g class="rays">
+                <rect x="41" y="6"  width="6" height="12" rx="3"/>
+                <rect x="8"  y="39" width="12" height="6" rx="3"/>
+                <rect x="16" y="14" width="6" height="12" rx="3" transform="rotate(-45 19 20)"/>
+                <rect x="66" y="14" width="6" height="12" rx="3" transform="rotate(45 69 20)"/>
+              </g>
+            </g>
+            <circle class="sun" cx="44" cy="42" r="19"/>
+            <g class="cloud drift">
+              <ellipse cx="52" cy="76" rx="17" ry="15"/>
+              <ellipse cx="74" cy="71" rx="21" ry="19"/>
+              <rect x="38" y="74" width="54" height="20" rx="10"/>
+            </g>
+          </svg>
+
+          <!-- PARTLY CLOUDY (night) -->
+          <svg class="scene" data-scene="partly-night" viewBox="0 0 120 120">
+            <path class="moon" d="M54 18A26 26 0 1 0 54 70 33 33 0 0 1 54 18Z"/>
+            <g transform="translate(94 26) scale(0.8)"><path class="star twinkle-1" d="M0-6C1-2 2-1 6 0 2 1 1 2 0 6-1 2-2 1-6 0-2-1-1-2 0-6Z"/></g>
+            <g transform="translate(22 40) scale(0.7)"><path class="star twinkle-3" d="M0-6C1-2 2-1 6 0 2 1 1 2 0 6-1 2-2 1-6 0-2-1-1-2 0-6Z"/></g>
+            <g class="cloud drift">
+              <ellipse cx="52" cy="76" rx="17" ry="15"/>
+              <ellipse cx="74" cy="71" rx="21" ry="19"/>
+              <rect x="38" y="74" width="54" height="20" rx="10"/>
+            </g>
+          </svg>
+
+          <!-- CLOUDY / OVERCAST -->
+          <svg class="scene" data-scene="cloudy" viewBox="0 0 120 120">
+            <g class="cloud cloud--back drift-slow">
+              <ellipse cx="42" cy="50" rx="15" ry="13"/>
+              <ellipse cx="62" cy="46" rx="18" ry="16"/>
+              <rect x="30" y="48" width="48" height="17" rx="8.5"/>
+            </g>
+            <g class="cloud drift">
+              <ellipse cx="48" cy="78" rx="18" ry="16"/>
+              <ellipse cx="72" cy="73" rx="22" ry="20"/>
+              <rect x="32" y="76" width="58" height="21" rx="10.5"/>
+            </g>
+          </svg>
+
+          <!-- FOG / MIST -->
+          <svg class="scene" data-scene="fog" viewBox="0 0 120 120">
+            <g class="cloud">
+              <ellipse cx="48" cy="56" rx="18" ry="16"/>
+              <ellipse cx="72" cy="51" rx="22" ry="20"/>
+              <rect x="32" y="54" width="58" height="21" rx="10.5"/>
+            </g>
+            <rect class="fog-line fog-1" x="26" y="84"  width="68" height="6" rx="3"/>
+            <rect class="fog-line fog-2" x="34" y="96"  width="52" height="6" rx="3"/>
+            <rect class="fog-line fog-3" x="30" y="108" width="60" height="6" rx="3"/>
+          </svg>
+
+          <!-- RAIN -->
+          <svg class="scene" data-scene="rain" viewBox="0 0 120 120">
+            <g class="cloud">
+              <ellipse cx="46" cy="52" rx="18" ry="16"/>
+              <ellipse cx="70" cy="47" rx="22" ry="20"/>
+              <rect x="30" y="50" width="58" height="21" rx="10.5"/>
+            </g>
+            <g class="drops">
+              <rect class="drop drop-1" x="40" y="78" width="6" height="14" rx="3"/>
+              <rect class="drop drop-2" x="57" y="78" width="6" height="14" rx="3"/>
+              <rect class="drop drop-3" x="74" y="78" width="6" height="14" rx="3"/>
+            </g>
+          </svg>
+
+          <!-- SNOW -->
+          <svg class="scene" data-scene="snow" viewBox="0 0 120 120">
+            <g class="cloud">
+              <ellipse cx="46" cy="52" rx="18" ry="16"/>
+              <ellipse cx="70" cy="47" rx="22" ry="20"/>
+              <rect x="30" y="50" width="58" height="21" rx="10.5"/>
+            </g>
+            <g class="flakes">
+              <circle class="flake flake-1" cx="43" cy="84" r="4.5"/>
+              <circle class="flake flake-2" cx="60" cy="84" r="4.5"/>
+              <circle class="flake flake-3" cx="77" cy="84" r="4.5"/>
+            </g>
+          </svg>
+
+          <!-- SLEET / ICE -->
+          <svg class="scene" data-scene="sleet" viewBox="0 0 120 120">
+            <g class="cloud">
+              <ellipse cx="46" cy="52" rx="18" ry="16"/>
+              <ellipse cx="70" cy="47" rx="22" ry="20"/>
+              <rect x="30" y="50" width="58" height="21" rx="10.5"/>
+            </g>
+            <rect class="drop drop-1" x="42" y="78" width="6" height="14" rx="3"/>
+            <circle class="flake flake-2" cx="60" cy="86" r="4.5"/>
+            <rect class="drop drop-3" x="74" y="78" width="6" height="14" rx="3"/>
+          </svg>
+
+          <!-- THUNDERSTORM -->
+          <svg class="scene" data-scene="thunder" viewBox="0 0 120 120">
+            <g class="cloud">
+              <ellipse cx="46" cy="50" rx="18" ry="16"/>
+              <ellipse cx="70" cy="45" rx="22" ry="20"/>
+              <rect x="30" y="48" width="58" height="21" rx="10.5"/>
+            </g>
+            <path class="bolt flash" d="M64 72 L46 98 L58 98 L52 116 L74 88 L61 88 Z"/>
+          </svg>
+
+          <!-- WIND / DUST -->
+          <svg class="scene" data-scene="wind" viewBox="0 0 120 120">
+            <g class="cloud drift">
+              <ellipse cx="50" cy="50" rx="17" ry="15"/>
+              <ellipse cx="72" cy="45" rx="20" ry="18"/>
+              <rect x="36" y="48" width="54" height="20" rx="10"/>
+            </g>
+            <path class="gust gust-1" d="M22 80h44a9 9 0 1 0-9-9"/>
+            <path class="gust gust-2" d="M30 98h34a8 8 0 1 1-8 8"/>
+          </svg>
+
+        </div>
+      </div>
+
+      <!-- ================= the numbers ================= -->
+      <p id="temp" class="temp"></p>
+      <p id="condition-text" class="condition"></p>
+
+      <p class="place">
+        <span id="place-name"></span>
+        <span id="place-region" class="place__region"></span>
+      </p>
+
+      <!-- ================= what to wear ================= -->
+      <section class="outfit">
+        <p class="outfit__label">What to wear</p>
+        <p id="outfit-headline" class="outfit__headline"></p>
+        <ul id="outfit-items" class="outfit__items"></ul>
+      </section>
+
+      <!-- ================= details ================= -->
+      <ul class="tiles">
+        <li class="tile"><span class="tile__label">Feels like</span><span id="feelslike" class="tile__value"></span></li>
+        <li class="tile"><span class="tile__label">Humidity</span><span id="humidity" class="tile__value"></span></li>
+        <li class="tile"><span class="tile__label">Wind</span><span id="wind" class="tile__value"></span></li>
+        <li class="tile"><span class="tile__label">UV index</span><span id="uv" class="tile__value"></span></li>
+        <li class="tile"><span class="tile__label">Pressure</span><span id="pressure" class="tile__value"></span></li>
+        <li class="tile"><span class="tile__label">Visibility</span><span id="visibility" class="tile__value"></span></li>
+      </ul>
+
+      <p id="updated" class="updated"></p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
