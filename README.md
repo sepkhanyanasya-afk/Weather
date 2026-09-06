@@ -1,7 +1,8 @@
 # Weather app
 
-Current weather for any city. Plain HTML, CSS and JavaScript, deployed on
-Netlify. The WeatherAPI key is kept on the server, never in the browser.
+Current weather and a 3-day forecast for any city, with illustrated
+conditions and clothing advice. Plain HTML, CSS and JavaScript, deployed
+on Netlify. The WeatherAPI key is kept on the server, never in the browser.
 
 ---
 
@@ -94,6 +95,19 @@ WeatherAPI  →  JSON  →  back to the browser  →  drawn on the page
 | `.env.example` | Template for `.env` |
 | `CLAUDE.md` | Notes for Claude Code |
 
+## Making changes
+
+The site redeploys itself whenever you push to `main`:
+
+```bash
+git add .
+git commit -m "what you changed"
+git push
+```
+
+Watch it build at app.netlify.com under **Deploys**.
+
 ## Next up
 
-Forecast (`forecast.json`), then light/dark mode, then animations.
+Possible additions: °C/°F toggle, "use my location", recent searches,
+tappable forecast days.

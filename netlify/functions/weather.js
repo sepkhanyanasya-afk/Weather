@@ -27,11 +27,14 @@ exports.handler = async function (event) {
   }
 
   // 3. Build the WeatherAPI request.
+  //    forecast.json gives us today's conditions AND the next days in
+  //    one call, so it replaces current.json entirely.
+  //    days=3 is the maximum on the free plan.
   const url =
-    "https://api.weatherapi.com/v1/current.json" +
+    "https://api.weatherapi.com/v1/forecast.json" +
     "?key=" + encodeURIComponent(apiKey) +
     "&q=" + encodeURIComponent(query) +
-    "&aqi=no";
+    "&days=3&aqi=no&alerts=no";
 
   try {
     const response = await fetch(url);
@@ -51,6 +54,7 @@ exports.handler = async function (event) {
     return json(200, {
       location: data.location,
       current: data.current,
+      forecast: data.forecast,
     });
   } catch (err) {
     return json(502, { error: "Could not reach the weather service." });

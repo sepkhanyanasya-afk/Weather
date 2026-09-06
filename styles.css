@@ -42,6 +42,41 @@
 
   --shadow:    rgba(43, 35, 64, 0.20);
   --radius:    28px;
+
+  --fur:       #A8AEC4;
+  --fur-line:  #2B2340;
+  --ear:       #F7B7C6;
+
+  /* ---- layout ----
+     Narrow (phone) is the starting point. The two blocks below widen
+     it: one when the screen is wide, one when the button forces it.
+     Only these variables change — the rules that use them are written
+     once, further down. */
+  --card-max:    420px;
+  --card-pad:    22px 22px 26px;
+  --result-cols: 1fr;
+  --result-gap:  0px;
+  --hero-sticky: static;
+}
+
+/* Wide screen, and the visitor has not forced the narrow view. */
+@media (min-width: 760px) {
+  :root:not([data-layout="phone"]) {
+    --card-max:    780px;
+    --card-pad:    26px 28px 30px;
+    --result-cols: 0.85fr 1fr;
+    --result-gap:  28px;
+    --hero-sticky: sticky;
+  }
+}
+
+/* The button forced the wide view, whatever the screen. */
+:root[data-layout="wide"] {
+  --card-max:    780px;
+  --card-pad:    26px 28px 30px;
+  --result-cols: 0.85fr 1fr;
+  --result-gap:  28px;
+  --hero-sticky: sticky;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -66,6 +101,10 @@
     --cloud:     #6F7FB0;
     --cloud-2:   #55648F;
     --shadow:    rgba(0, 0, 0, 0.45);
+
+    --fur:       #8E93AE;
+    --fur-line:  #16132E;
+    --ear:       #C97E92;
   }
 }
 
@@ -90,6 +129,10 @@
   --cloud:     #6F7FB0;
   --cloud-2:   #55648F;
   --shadow:    rgba(0, 0, 0, 0.45);
+
+  --fur:       #8E93AE;
+  --fur-line:  #16132E;
+  --ear:       #C97E92;
 }
 
 /* ------------------------------------------------------------------ */
@@ -101,6 +144,10 @@ body {
   min-height: 100svh;
   display: grid;
   place-items: center;
+  /* minmax(0, 1fr) lets the column shrink below its content's natural
+     width. Without it a wide child pushes the page sideways on a
+     narrow phone and you get a horizontal scrollbar. */
+  grid-template-columns: minmax(0, 1fr);
   padding: 24px 16px 48px;
   font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-weight: 600;
@@ -132,15 +179,17 @@ body {
 /* --- the card ----------------------------------------------------- */
 .card {
   position: relative;
+  min-width: 0;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
-  padding: 22px 22px 26px;
+  max-width: var(--card-max);
+  padding: var(--card-pad);
+  transition: max-width 0.3s ease, padding 0.3s ease,
+              background 0.4s ease, border-color 0.4s ease;
   background: var(--surface);
   border: 3px solid var(--line);
   border-radius: var(--radius);
   box-shadow: 0 14px 0 -4px var(--shadow), 0 30px 60px -20px var(--shadow);
-  transition: background 0.4s ease, border-color 0.4s ease;
 }
 
 /* --- top bar ------------------------------------------------------ */
@@ -154,7 +203,9 @@ body {
   letter-spacing: -0.01em;
 }
 
-.theme-toggle {
+.bar__buttons { display: flex; gap: 8px; }
+
+.icon-button {
   display: grid;
   place-items: center;
   width: 42px; height: 42px;
@@ -167,8 +218,24 @@ body {
   cursor: pointer;
   transition: transform 0.15s ease, background 0.3s ease;
 }
-.theme-toggle:hover  { transform: rotate(-12deg) scale(1.06); }
-.theme-toggle:active { transform: scale(0.94); }
+.icon-button:active { transform: scale(0.94); }
+.theme-toggle:hover { transform: rotate(-12deg) scale(1.06); }
+.layout-toggle:hover { transform: scale(1.08); }
+
+/* the layout button: show only the icon for the current mode */
+.layout-toggle__icon { grid-area: 1 / 1; display: none; width: 19px; height: 19px; }
+.layout-toggle__icon * {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.layout-toggle__icon[data-mode="auto"] { display: block; }
+:root[data-layout="phone"] .layout-toggle__icon[data-mode="auto"]  { display: none; }
+:root[data-layout="phone"] .layout-toggle__icon[data-mode="phone"] { display: block; }
+:root[data-layout="wide"]  .layout-toggle__icon[data-mode="auto"]  { display: none; }
+:root[data-layout="wide"]  .layout-toggle__icon[data-mode="wide"]  { display: block; }
 
 /* show the sun in dark mode (press it to go light) and vice versa */
 .theme-toggle__icon { grid-area: 1 / 1; }
@@ -220,7 +287,19 @@ body {
 .note--error   { color: var(--danger); }
 
 /* --- result ------------------------------------------------------- */
-.result { margin-top: 6px; text-align: center; }
+.result {
+  margin-top: 6px;
+  text-align: center;
+  display: grid;
+  grid-template-columns: var(--result-cols);
+  gap: var(--result-gap);
+  align-items: start;
+}
+/* [hidden] must still win over display:grid */
+.result[hidden] { display: none; }
+
+.hero { position: var(--hero-sticky); top: 20px; }
+.info { min-width: 0; }
 
 .scene-wrap { display: grid; place-items: center; height: 150px; }
 .scenes { width: 150px; height: 150px; }
@@ -290,6 +369,58 @@ body {
 .outfit__item svg { width: 18px; height: 18px; flex: none; }
 .outfit__item svg * { stroke: var(--accent); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 
+/* --- next few days --------------------------------------------------- */
+.forecast {
+  margin-top: 18px;
+  padding: 14px 12px;
+  background: var(--surface-2);
+  border: 2.5px solid var(--line);
+  border-radius: 22px;
+}
+
+.forecast__label {
+  margin: 0 0 10px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.forecast__days {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.day {
+  padding: 10px 4px 12px;
+  background: var(--surface);
+  border: 2px solid var(--line-soft);
+  border-radius: 16px;
+}
+.day__name { display: block; font-size: 0.75rem; font-weight: 800; }
+
+/* the cloned illustration, shrunk down */
+.day__icon { display: block; width: 46px; height: 46px; margin: 2px auto 0; }
+
+.day__temps { display: block; margin-top: 2px; font-size: 0.85rem; font-weight: 800; }
+.day__low   { color: var(--muted); }
+
+.day__rain {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--sky);
+}
+.day__rain svg { width: 11px; height: 11px; fill: var(--sky); }
+
 /* --- detail tiles --------------------------------------------------- */
 .tiles {
   list-style: none;
@@ -310,6 +441,47 @@ body {
 .tile__value { display: block; margin-top: 3px; font-size: 0.95rem; font-weight: 800; }
 
 .updated { margin: 16px 0 0; font-size: 0.7rem; font-weight: 600; color: var(--muted); }
+
+/* ==================================================================
+   The mouse that follows the cursor
+   ================================================================== */
+
+.critter {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 58px;
+  height: 72px;
+  z-index: 3;
+  pointer-events: none;      /* never blocks a click */
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  will-change: transform;
+}
+.critter.is-awake { opacity: 1; }
+.critter svg { width: 100%; height: 100%; overflow: visible; }
+
+.critter__canopy { fill: var(--accent); stroke: var(--fur-line); stroke-width: 3; stroke-linejoin: round; }
+.critter__pole   { fill: none; stroke: var(--fur-line); stroke-width: 3; stroke-linecap: round; }
+.critter__fur    { fill: var(--fur); stroke: var(--fur-line); stroke-width: 3; }
+.critter__ear    { fill: var(--fur); stroke: var(--fur-line); stroke-width: 3; }
+.critter__ear-in { fill: var(--ear); }
+.critter__eye    { fill: var(--fur-line); }
+.critter__nose   { fill: var(--ear); }
+.critter__tail   { fill: none; stroke: var(--fur-line); stroke-width: 3; stroke-linecap: round; }
+.critter__arm    { fill: none; stroke: var(--fur-line); stroke-width: 3; stroke-linecap: round; }
+
+.critter__bob { animation: bob 0.9s ease-in-out infinite; transform-origin: 40px 96px; }
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50%      { transform: translateY(-3px) rotate(1.5deg); }
+}
+
+/* No cursor to follow on a touch screen, and nothing bouncing for
+   anyone who asked their system to reduce motion. */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .critter { display: none; }
+}
 
 /* ==================================================================
    The illustrations
@@ -359,6 +531,6 @@ body {
 
 /* --- small screens -------------------------------------------------- */
 @media (max-width: 380px) {
-  .tiles { grid-template-columns: repeat(2, 1fr); }
-  .temp  { font-size: 3.4rem; }
+  :root:not([data-layout="wide"]) .tiles { grid-template-columns: repeat(2, 1fr); }
+  .temp { font-size: 3.4rem; }
 }

@@ -34,6 +34,100 @@ document.getElementById("theme-toggle").addEventListener("click", function () {
 });
 
 /* ==================================================================
+   PART 1b — Layout: phone / desktop / automatic
+
+   Three settings, pressed in a cycle:
+     auto   (nothing stored) — the CSS decides from the screen width
+     phone  — always the narrow single-column card
+     wide   — always the two-column desktop card
+
+   The CSS does the actual work; all this does is put an attribute on
+   the page (data-layout) that the CSS is watching for.
+   ================================================================== */
+
+const LAYOUT_KEY = "weather-layout";
+const LAYOUTS = ["auto", "phone", "wide"];
+const LAYOUT_TITLES = {
+  auto:  "Layout: fits your screen",
+  phone: "Layout: phone",
+  wide:  "Layout: desktop",
+};
+
+const layoutButton = document.getElementById("layout-toggle");
+
+function applyLayout(mode) {
+  if (mode === "auto") {
+    root.removeAttribute("data-layout");
+  } else {
+    root.setAttribute("data-layout", mode);
+  }
+  layoutButton.title = LAYOUT_TITLES[mode];
+  layoutButton.setAttribute("aria-label", LAYOUT_TITLES[mode]);
+}
+
+// Restore last time's choice.
+let layoutMode = "auto";
+try {
+  const saved = localStorage.getItem(LAYOUT_KEY);
+  if (LAYOUTS.includes(saved)) layoutMode = saved;
+} catch (e) {}
+applyLayout(layoutMode);
+
+layoutButton.addEventListener("click", function () {
+  // Step to the next setting, wrapping back to the start at the end.
+  const next = LAYOUTS[(LAYOUTS.indexOf(layoutMode) + 1) % LAYOUTS.length];
+  layoutMode = next;
+  applyLayout(next);
+  try { localStorage.setItem(LAYOUT_KEY, next); } catch (e) {}
+});
+
+/* ==================================================================
+   PART 1c — The mouse that follows the cursor
+
+   It does not jump to the cursor. Each frame it moves a small
+   fraction (EASE) of the remaining distance, which is what makes it
+   look like it is trotting after you rather than being dragged.
+   ================================================================== */
+
+const critter = document.getElementById("critter");
+
+const EASE = 0.075;     // 0 = never arrives, 1 = glued to the cursor
+const TRAIL_X = 46;     // how far behind and below it settles
+const TRAIL_Y = 34;
+
+let targetX = window.innerWidth / 2;
+let targetY = window.innerHeight / 2;
+let critterX = targetX;
+let critterY = targetY;
+let facing = 1;         // 1 = facing left (how it is drawn), -1 = flipped
+
+window.addEventListener("pointermove", function (event) {
+  targetX = event.clientX + TRAIL_X;
+  targetY = event.clientY + TRAIL_Y;
+  critter.classList.add("is-awake");   // fades in on first movement
+});
+
+function moveCritter() {
+  const stepX = (targetX - critterX) * EASE;
+  const stepY = (targetY - critterY) * EASE;
+
+  critterX += stepX;
+  critterY += stepY;
+
+  // Turn around, but only once it is really moving — otherwise it
+  // flickers back and forth while nearly still.
+  if (stepX < -0.4) facing = 1;
+  else if (stepX > 0.4) facing = -1;
+
+  critter.style.transform =
+    "translate(" + (critterX - 29) + "px, " + (critterY - 36) + "px) scaleX(" + facing + ")";
+
+  requestAnimationFrame(moveCritter);
+}
+
+moveCritter();
+
+/* ==================================================================
    PART 2 — Which picture goes with which weather
 
    WeatherAPI sends a number ("condition code") for each kind of
@@ -164,6 +258,67 @@ async function getWeather(city) {
   }
 }
 
+/* ==================================================================
+   PART 5b — The next few days
+
+   forecast.json returns an array called forecastday. Each entry has a
+   date and a "day" object with the highs, lows and rain chance.
+   The free plan gives 3 days, today included.
+   ================================================================== */
+
+const RAINDROP =
+  '<svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-7-13-7-13Z"/></svg>';
+
+function dayName(dateString, index) {
+  if (index === 0) return "Today";
+  // Midday avoids any timezone edge case pushing us to the wrong day.
+  const date = new Date(dateString + "T12:00:00");
+  return date.toLocaleDateString(undefined, { weekday: "short" });
+}
+
+function renderForecast(days) {
+  const list = document.getElementById("forecast-days");
+  list.innerHTML = "";
+
+  days.forEach(function (entry, index) {
+    const info = entry.day;
+
+    const card = document.createElement("li");
+    card.className = "day";
+
+    const name = document.createElement("span");
+    name.className = "day__name";
+    name.textContent = dayName(entry.date, index);
+    card.appendChild(name);
+
+    // Reuse the same illustrations as the big display: find the
+    // matching one and take a copy, so we do not draw them twice.
+    const source = scenesEl.querySelector('[data-scene="' + sceneFor(info.condition.code, true) + '"]');
+    if (source) {
+      const copy = source.cloneNode(true);
+      copy.classList.add("is-showing", "day__icon");
+      copy.removeAttribute("data-scene");
+      card.appendChild(copy);
+    }
+
+    const temps = document.createElement("span");
+    temps.className = "day__temps";
+    temps.innerHTML = Math.round(info.maxtemp_c) + '° <span class="day__low">' +
+                      Math.round(info.mintemp_c) + '°</span>';
+    card.appendChild(temps);
+
+    const chance = info.daily_chance_of_rain;
+    if (chance > 0) {
+      const rain = document.createElement("span");
+      rain.className = "day__rain";
+      rain.innerHTML = RAINDROP + "<span>" + chance + "%</span>";
+      card.appendChild(rain);
+    }
+
+    list.appendChild(card);
+  });
+}
+
 function render(data) {
   const place = data.location;
   const now   = data.current;
@@ -201,6 +356,11 @@ function render(data) {
   document.getElementById("uv").textContent         = now.uv;
   document.getElementById("pressure").textContent   = now.pressure_mb + " mb";
   document.getElementById("visibility").textContent = now.vis_km + " km";
+
+  // --- the next few days
+  if (data.forecast && data.forecast.forecastday) {
+    renderForecast(data.forecast.forecastday);
+  }
 
   document.getElementById("updated").textContent =
     "Local time " + place.localtime + " · updated " + now.last_updated;
